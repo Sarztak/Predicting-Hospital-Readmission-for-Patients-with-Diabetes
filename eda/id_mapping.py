@@ -107,3 +107,27 @@ admission_type_mapping = {
     6: 'UNKNOWN',  # NULL
     8: 'UNKNOWN'   # Not Mapped
 }
+
+payer_mapping = {
+    'MC': 'Government',
+    'MD': 'Government',
+    'CH': 'Government',
+    'OG': 'Government',
+    'SI': 'Government',
+    'MP': 'Government',
+    
+    'HM': 'Private',
+    'BC': 'Private',
+    'CP': 'Private',
+    'CM': 'Private',
+    'PO': 'Private',
+    'DM': 'Private',
+    
+    'SP': 'Self-Pay',
+    'WC': 'Workers-Comp',
+    
+    '?': 'Unknown',
+    'UN': 'Unknown',
+    'OT': 'Unknown',
+    'FR': 'Unknown'
+}
