@@ -1,4 +1,0 @@
-artifact_location: file:///C:/Users/sar31/Documents/GitHub/Predicting-Hospital-Readmission-for-Patients-with-Diabetes/mlruns/1
-experiment_id: '1'
-lifecycle_stage: active
-name: rf_model
