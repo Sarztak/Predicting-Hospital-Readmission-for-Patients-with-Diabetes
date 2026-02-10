@@ -48,6 +48,55 @@ def split_data_by_patient_id(df, ratio="70:10:10:10"):
     )
 
     return split_data
+def log_h2o_runs():
+    import mlflow
+    import h2o
+    from h2o.automl import H2OAutoML
+
+    # Start MLflow run
+    with mlflow.start_run(run_name="h2o_automl_experiment"):
+        
+        # Log parameters
+        mlflow.log_param("max_models", 50)
+        mlflow.log_param("max_runtime_secs", 300)
+        mlflow.log_param("stopping_metric", "AUCPR")
+        mlflow.log_param("algorithms", "XGBoost,GBM,DRF")
+        
+        # Train AutoML
+        aml = H2OAutoML(
+            max_models=50,
+            seed=1984,
+            nfolds=0,
+            stopping_metric="AUCPR",
+            sort_metric="AUCPR",
+            include_algos=["XGBoost", "GBM", "DRF"],
+            balance_classes=False,
+            max_runtime_secs=300,
+        )
+        
+        aml.train(x=x_cols, y=y_col, training_frame=train_h2o, validation_frame=val_h2o)
+        
+        # Get best model
+        best_model = aml.leader
+        
+        # Log metrics
+        perf = best_model.model_performance(val_h2o)
+        mlflow.log_metric("aucpr", perf.aucpr())
+        mlflow.log_metric("auc", perf.auc())
+        mlflow.log_metric("logloss", perf.logloss())
+        
+        # Log model type
+        mlflow.log_param("best_model_type", best_model.algo)
+        mlflow.log_param("best_model_id", best_model.model_id)
+        
+        # Save and log model
+        model_path = h2o.save_model(best_model, path="./h2o_model")
+        mlflow.log_artifact(model_path)
+        
+        # Optional: Log leaderboard
+        leaderboard = aml.leaderboard.as_data_frame()
+        leaderboard.to_csv("leaderboard.csv", index=False)
+        mlflow.log_artifact("leaderboard.csv")
 
 if __name__ == "__main__":
 

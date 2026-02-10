@@ -5,6 +5,7 @@ description = "Add your description here"
 readme = "README.md"
 requires-python = ">=3.10"
 dependencies = [
+    "flaml[automl]>=2.5.0",
     "h2o>=3.46.0.9",
     "ipykernel>=7.1.0",
     "matplotlib>=3.10.8",
