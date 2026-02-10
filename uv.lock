@@ -722,6 +722,18 @@ wheels = [
 ]
 
 [[package]]
+name = "h2o"
+version = "3.46.0.9"
+source = { registry = "https://pypi.org/simple" }
+dependencies = [
+    { name = "requests" },
+    { name = "tabulate" },
+]
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/5e/44/6294e10f0931cf31576202349ac7fb9879646083ef29f2a6f00db26ec0c0/h2o-3.46.0.9-py2.py3-none-any.whl", hash = "sha256:2b464cb13c129d2c4b1e950ea0f8f0ce1d18b21bf226355bcd62b872b56e8108", size = 266043203 },
+]
+
+[[package]]
 name = "idna"
 version = "3.11"
 source = { registry = "https://pypi.org/simple" }
@@ -1523,6 +1535,7 @@ name = "predicting-hospital-readmission-for-patients-with-diabetes"
 version = "0.1.0"
 source = { virtual = "." }
 dependencies = [
+    { name = "h2o" },
     { name = "ipykernel" },
     { name = "matplotlib" },
     { name = "mlflow" },
@@ -1539,6 +1552,7 @@ dependencies = [
 
 [package.metadata]
 requires-dist = [
+    { name = "h2o", specifier = ">=3.46.0.9" },
     { name = "ipykernel", specifier = ">=7.1.0" },
     { name = "matplotlib", specifier = ">=3.10.8" },
     { name = "mlflow", specifier = "==2.9.2" },

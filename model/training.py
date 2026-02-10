@@ -1,12 +1,12 @@
 import matplotlib.pyplot as plt
 from sklearn.metrics import accuracy_score, precision_score, recall_score, f1_score, roc_auc_score, confusion_matrix
-from sklearn.model_selection import train_test_split
 from rich.traceback import install; install()
 from pathlib import Path
 import pandas as pd
 from sklearn.ensemble import RandomForestClassifier
+import mlflow
 import mlflow.sklearn
-
+from helper import split_data_by_patient_id
 
 def main(X_train, X_test, y_train, y_test):
     rf = RandomForestClassifier(class_weight='balanced')
@@ -64,26 +64,6 @@ def main(X_train, X_test, y_train, y_test):
         mlflow.log_text(str(cm), "confusion_matrix.txt")
 
 
-def split_data_by_patient_id(df):
-    # get the unique patient ids
-    patient_ids = df.patient_nbr.unique()
-
-    # split by the patient_ids into train test split
-    X_train_patient_ids, X_test_patient_ids, = train_test_split(patient_ids, test_size=0.2) 
-
-    # now once you have the split by patient ids then use the ids to create train and test features 
-    train_df = df.loc[df.patient_nbr.isin(X_train_patient_ids)]
-    test_df = df.loc[df.patient_nbr.isin(X_test_patient_ids)]
-
-    y_train = train_df.readmitted
-    y_test = test_df.readmitted
-    
-    X_train = train_df.drop(columns=['readmitted', 'patient_nbr'])
-    X_test = test_df.drop(columns=['readmitted', 'patient_nbr'])
-
-    return X_train, X_test, y_train, y_test
-
-
 if __name__ == "__main__":
     # load data
     data_dir = Path('./data')
@@ -97,3 +77,6 @@ if __name__ == "__main__":
     
     # run the experiment
     main(X_train, X_test, y_train, y_test)
+    
+    # command to run the server which needs to be started before anything else
+    # mlflow server --backend-store-uri sqlite:///mlflow.db --default-artifact-root ./mlruns --host 127.0.0.1 --port 5000
