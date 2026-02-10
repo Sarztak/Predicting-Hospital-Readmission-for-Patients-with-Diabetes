@@ -11,6 +11,7 @@ from pathlib import Path
 from helper import split_data_by_patient_id
 import pandas as pd 
 import pickle
+import mlflow
 
 if __name__ == "__main__":
     # load data
@@ -73,18 +74,48 @@ if __name__ == "__main__":
         sort_metric="AUCPR",
         include_algos=["XGBoost", "GBM", "DRF"],
         balance_classes=False,
-        max_runtime_secs=300,
+        max_runtime_secs=60,
     )
 
-    # now training 
-    aml.train(
-        x=feature_cols_name,
-        y=target_col_name,
-        training_frame=X_train_h2o,
-        validation_frame=X_val_h2o,
-        weights_column="weights"
-    )
+    # before training we need to set mlflow for tracking experiement
+    mlflow.set_tracking_uri("http://localhost:5000") 
 
-    leader = aml.leader
-    test_perf = leader.model_performance(X_test_h2o)
-    print("Test AUCPR:", test_perf.aucpr())
+    # set the name of the experiment
+    mlflow.set_experiment("baseline_automl_h2o")
+
+    with mlflow.start_run(run_name="h2o_automl_search"):
+        # now training 
+        aml.train(
+            x=feature_cols_name,
+            y=target_col_name,
+            training_frame=X_train_h2o,
+            validation_frame=X_val_h2o,
+            weights_column="weights"
+        )
+
+        leaderboard = aml.leaderboard.as_data_frame()
+
+        # Log each model as a child run
+        for idx, row in leaderboard.iterrows():
+            model_id = row['model_id']
+            model = h2o.get_model(model_id)
+            
+            with mlflow.start_run(run_name=model_id, nested=True):
+                # Log model type and hyperparameters
+                mlflow.log_param("algorithm", model.algo)
+                mlflow.log_param("model_id", model_id)
+                
+                # Log hyperparameters
+                params = model.params
+                for key, value in params.items():
+                    if value['actual'] is not None:
+                        mlflow.log_param(key, value['actual'])
+                
+                # Log metrics
+                mlflow.log_metric("aucpr", row['aucpr'])
+                mlflow.log_metric("auc", row['auc'])
+                mlflow.log_metric("logloss", row['logloss'])
+                
+                # Optionally save model
+                model_path = h2o.save_model(model, path=f"./models/{model_id}")
+                mlflow.log_artifact(model_path)
