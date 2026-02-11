@@ -4,7 +4,9 @@ from pathlib import Path
 import pandas as pd 
 import pickle
 import mlflow
-from sklearn.metrics import average_precision_score, roc_auc_score, log_loss
+from sklearn.metrics import average_precision_score, roc_auc_score, log_loss, PrecisionRecallDisplay, precision_recall_curve
+import matplotlib.pyplot as plt 
+import numpy as np
 
 if __name__ == "__main__":
     data_dir = Path('./data')
@@ -44,8 +46,8 @@ if __name__ == "__main__":
             y_train=y_train,
             X_val=X_val,
             y_val=y_val,
-            # sample_weight=sample_weights,
-            metric='ap',
+            sample_weight=sample_weights, 
+            metric='ap', # average precision - same as AUCPR
             task='classification',
             estimator_list=['xgboost', 'lgbm', 'rf'],
             time_budget=60,
@@ -54,15 +56,14 @@ if __name__ == "__main__":
         )
 
         mlflow.log_param("best_estimator", automl.best_estimator)
-        # mlflow.log_param("best_config", str(automl.best_config))
         mlflow.log_dict(automl.best_config, "best_config.json")
         mlflow.log_metric("best_validation_loss", automl.best_loss)
         
         # Evaluate on validation set
-        y_pred_proba = automl.predict_proba(X_val)[:, 1]
-        val_aucpr = average_precision_score(y_val, y_pred_proba)
-        val_auc = roc_auc_score(y_val, y_pred_proba)
-        val_logloss = log_loss(y_val, y_pred_proba)
+        y_pred_proba_val = automl.predict_proba(X_val)[:, 1]
+        val_aucpr = average_precision_score(y_val, y_pred_proba_val)
+        val_auc = roc_auc_score(y_val, y_pred_proba_val)
+        val_logloss = log_loss(y_val, y_pred_proba_val)
         
         mlflow.log_metric("val_aucpr", val_aucpr)
         mlflow.log_metric("val_auc", val_auc)
@@ -77,4 +78,30 @@ if __name__ == "__main__":
         mlflow.log_metric("test_aucpr", test_aucpr)
         mlflow.log_metric("test_auc", test_auc)
         mlflow.log_metric("test_logloss", test_logloss)
+
+        plt.figure(figsize=(10, 6))
+        precision, recall, thresholds = precision_recall_curve(y_val, y_pred_proba_val) 
+        PrecisionRecallDisplay.from_predictions(y_val, y_pred_proba_val)
+        plt.savefig('./outputs/images/pr_curve.png')
+        mlflow.log_artifact('./outputs/images/pr_curve.png')
+
+        # precision and threshold at fixed recall 
+        recall_fixed = 0.8
+        op_idx = np.argmin(np.abs(recall - recall_fixed))
+        precision_op = precision[op_idx]
+        threshold_op = thresholds[op_idx]
+        recall_op = recall[op_idx]
+
+        # log the result as artifact
+        mlflow.log_dict(
+            dict(
+                precision_op=precision_op,
+                recall_op=recall_op,
+                threshold_op=threshold_op,
+            ),
+            "model_operating_point_at_recall_0p8.json"
+        )
+
+
+
         
